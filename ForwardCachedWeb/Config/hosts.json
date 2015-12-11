@@ -1,0 +1,7 @@
+﻿[
+    {
+        "host": "tfs.800casting.ns",
+        "target": "tfs.800casting.com",
+        "localCache":  true
+    }
+]
