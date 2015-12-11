@@ -59,6 +59,9 @@ namespace ForwardCachedWeb.Controllers
         {
             base.OnResultExecuted(filterContext);
 
+            logger.WriteLine();
+            logger.WriteLine();
+
             // log....
             lock (lockObject)
             {
