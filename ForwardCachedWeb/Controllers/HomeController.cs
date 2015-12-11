@@ -48,18 +48,26 @@ namespace ForwardCachedWeb.Controllers
 
                     var resp = await HttpResponseActionResult.New(logger,r);
 
-                    // log....
-                    lock (lockObject)
-                    {
-                        DateTime today = DateTime.Today;
-                        String path = String.Format(MvcApplication.LogPath + "/log-{0}.txt", today.ToString("yyyy-MM-dd"));
-                        System.IO.File.AppendAllText(path, logger.GetStringBuilder().ToString());
-
-                    }
 
                     return resp;
                 }
             }
+        }
+
+
+        protected override void OnResultExecuted(ResultExecutedContext filterContext)
+        {
+            base.OnResultExecuted(filterContext);
+
+            // log....
+            lock (lockObject)
+            {
+                DateTime today = DateTime.Today;
+                String path = String.Format(MvcApplication.LogPath + "/log-{0}.txt", today.ToString("yyyy-MM-dd"));
+                System.IO.File.AppendAllText(path, logger.GetStringBuilder().ToString());
+
+            }
+
         }
 
         protected override void OnException(ExceptionContext filterContext)
@@ -91,6 +99,8 @@ namespace ForwardCachedWeb.Controllers
             // transfer all headers 
             foreach (string item in Request.Headers.Keys)
             {
+                if (item.Equals("host", StringComparison.OrdinalIgnoreCase))
+                    continue;
                 string value = Request.Headers[item];
                 msg.Headers.Add(item, value);
                 logger.WriteLine("{0}={1}",item,value);
