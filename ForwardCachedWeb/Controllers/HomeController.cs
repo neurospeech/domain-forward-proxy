@@ -44,16 +44,20 @@ namespace ForwardCachedWeb.Controllers
 
                     var r = await client.SendAsync(msg);
 
-                    // log....
-                    lock (lockObject) { 
-                        DateTime today = DateTime.Today;
-                        String path = String.Format( MvcApplication.LogPath + "/log-{0}.txt",today.ToString("yyyy-MM-dd"));
-                        System.IO.File.AppendAllText(path, logger.GetStringBuilder().ToString());
-                        
-                    }
-                    
+                    logger.WriteLine();
 
-                    return await HttpResponseActionResult.New(r);
+                    var resp = await HttpResponseActionResult.New(logger,r);
+
+                    // log....
+                    lock (lockObject)
+                    {
+                        DateTime today = DateTime.Today;
+                        String path = String.Format(MvcApplication.LogPath + "/log-{0}.txt", today.ToString("yyyy-MM-dd"));
+                        System.IO.File.AppendAllText(path, logger.GetStringBuilder().ToString());
+
+                    }
+
+                    return resp;
                 }
             }
         }
@@ -89,6 +93,7 @@ namespace ForwardCachedWeb.Controllers
             {
                 string value = Request.Headers[item];
                 msg.Headers.Add(item, value);
+                logger.WriteLine("{0}={1}",item,value);
             }
 
             msg.Headers.Accept.Clear();
@@ -160,15 +165,18 @@ namespace ForwardCachedWeb.Controllers
     public class HttpResponseActionResult : ActionResult
     {
 
-        public static async Task<HttpResponseActionResult> New(HttpResponseMessage msg)
+        public static async Task<HttpResponseActionResult> New(StringWriter logger, HttpResponseMessage msg)
         {
             var s = await msg.Content.ReadAsByteArrayAsync();
             return new HttpResponseActionResult
             {
+                logger = logger,
                 Content = s,
                 ResponseMessage = msg
             };
         }
+
+        public StringWriter logger;
 
         public HttpResponseMessage ResponseMessage { get; set; }
 
@@ -181,6 +189,8 @@ namespace ForwardCachedWeb.Controllers
             Response.StatusCode = (int)ResponseMessage.StatusCode;
             Response.StatusDescription = ResponseMessage.ReasonPhrase;
             Response.TrySkipIisCustomErrors = true;
+
+            logger.WriteLine("{0} {1}", Response.StatusCode, Response.StatusDescription);
 
             if (Response.StatusCode == 200)
             {
@@ -202,7 +212,10 @@ namespace ForwardCachedWeb.Controllers
 
             foreach (var item in ResponseMessage.Headers)
             {
-                Response.Headers.Set(item.Key, string.Join(";", item.Value));
+                String value = string.Join(";", item.Value);
+                Response.Headers.Set(item.Key, value);
+                logger.WriteLine("{0}={1}", item.Key, value);
+
             }
 
             if (ResponseMessage.Headers.Location != null)
